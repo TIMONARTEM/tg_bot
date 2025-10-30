@@ -7,12 +7,12 @@ from aiogram.filters import Command
 from openai import OpenAI
 from threading import Thread
 
-# --- Fix for Render proxy vars ---
+# --- Удаляем proxy переменные, чтобы OpenAI клиент не падал на Render ---
 for proxy_var in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
     if proxy_var in os.environ:
         del os.environ[proxy_var]
 
-# --- Настройки токенов ---
+# --- Токены из Environment Variables ---
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -24,7 +24,7 @@ bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# --- Flask: нужен Render, чтобы видеть 'порт' ---
+# --- Flask сервер для Render (порт обязателен) ---
 app = Flask(__name__)
 
 @app.route("/")
