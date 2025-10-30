@@ -1,16 +1,17 @@
 import os
 import asyncio
+from threading import Thread
 from flask import Flask
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
 from aiogram.filters import Command
-from openai import OpenAI
-from threading import Thread
 
-# --- Удаляем proxy переменные, чтобы OpenAI клиент не падал на Render ---
+# --- Удаляем proxy-переменные ДО импорта openai ---
 for proxy_var in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
     if proxy_var in os.environ:
         del os.environ[proxy_var]
+
+from openai import OpenAI  # импортируем только после очистки окружения
 
 # --- Токены из Environment Variables ---
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -29,12 +30,12 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "✅ Telegram ChatGPT бот работает!"
+    return "✅ Telegram ChatGPT бот работает на Render!"
 
 # --- Обработчики Telegram ---
 @dp.message(Command("start"))
 async def start_handler(message: Message):
-    await message.answer("Привет 👋 Я бот, подключённый к ChatGPT! Напиши мне что-нибудь.")
+    await message.answer("Привет 👋 Я бот, подключённый к ChatGPT!")
 
 @dp.message()
 async def chatgpt_handler(message: Message):
@@ -51,7 +52,6 @@ async def chatgpt_handler(message: Message):
         )
         reply = response.choices[0].message.content
         await message.answer(reply)
-
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}")
 
@@ -66,4 +66,4 @@ def run_flask():
 
 if __name__ == "__main__":
     Thread(target=run_flask).start()
-    asyncio.run(start_bot())
+    async
