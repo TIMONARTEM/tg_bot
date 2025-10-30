@@ -1,58 +1,64 @@
 import os
-from aiogram import Bot, Dispatcher, types
+import asyncio
+from flask import Flask
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
 from aiogram.filters import Command
 from openai import OpenAI
-from aiohttp import web
-import asyncio
+from threading import Thread
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL", "https://example.com")  # Render сам создаст URL
-WEBHOOK_PATH = f"/webhook/{TELEGRAM_TOKEN}"
-WEBHOOK_URL = WEBHOOK_HOST + WEBHOOK_PATH
+# --- Настройки токенов ---
+TELEGRAM_TOKEN = os.getenv("8370187250:AAHaAFePonylTO3Bn5CsQoA2Vw25h_JHXl0")
+OPENAI_API_KEY = os.getenv("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")
 
+if not TELEGRAM_TOKEN or not OPENAI_API_KEY:
+    raise ValueError("❌ Укажи TELEGRAM_TOKEN и OPENAI_API_KEY в Render Environment Variables")
+
+# --- Инициализация клиентов ---
 bot = Bot(token=TELEGRAM_TOKEN)
 dp = Dispatcher()
 client = OpenAI(api_key=OPENAI_API_KEY)
 
+# --- Flask: нужен Render, чтобы видеть 'порт' ---
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "✅ Telegram ChatGPT бот работает!"
+
+# --- Обработчики Telegram ---
 @dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer("Привет 👋 Я бот с ChatGPT. Напиши что-нибудь!")
+async def start_handler(message: Message):
+    await message.answer("Привет 👋 Я бот, подключённый к ChatGPT! Напиши мне что-нибудь.")
 
 @dp.message()
-async def chat_handler(message: types.Message):
-    await message.answer("💬 Думаю над ответом...")
+async def chatgpt_handler(message: Message):
+    user_text = message.text.strip()
+    await message.answer("⏳ Думаю над ответом...")
+
     try:
-        completion = client.chat.completions.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Ты доброжелательный Telegram-бот."},
-                {"role": "user", "content": message.text},
-            ]
+                {"role": "system", "content": "Ты дружелюбный Telegram-бот."},
+                {"role": "user", "content": user_text},
+            ],
         )
-        reply = completion.choices[0].message.content
+        reply = response.choices[0].message.content
         await message.answer(reply)
+
     except Exception as e:
-        print("Ошибка OpenAI:", e)
-        await message.answer("⚠️ Ошибка при обращении к ChatGPT. Попробуйте позже.")
+        await message.answer(f"⚠️ Ошибка: {e}")
 
-async def on_startup(app):
-    await bot.set_webhook(WEBHOOK_URL)
-    print("✅ Webhook установлен:", WEBHOOK_URL)
+# --- Асинхронный запуск бота ---
+async def start_bot():
+    await dp.start_polling(bot)
 
-async def on_shutdown(app):
-    await bot.delete_webhook()
-
-async def handle_webhook(request):
-    data = await request.json()
-    update = types.Update(**data)
-    await dp.feed_update(bot, update)
-    return web.Response()
-
-app = web.Application()
-app.router.add_post(WEBHOOK_PATH, handle_webhook)
-app.on_startup.append(on_startup)
-app.on_shutdown.append(on_shutdown)
+# --- Flask в отдельном потоке, чтобы Render не падал ---
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
 
 if __name__ == "__main__":
-    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    Thread(target=run_flask).start()
+    asyncio.run(start_bot())
