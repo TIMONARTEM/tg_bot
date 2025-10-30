@@ -8,8 +8,8 @@ from openai import OpenAI
 from threading import Thread
 
 # --- Настройки токенов ---
-TELEGRAM_TOKEN = os.getenv("8370187250:AAHaAFePonylTO3Bn5CsQoA2Vw25h_JHXl0")
-OPENAI_API_KEY = os.getenv("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")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not TELEGRAM_TOKEN or not OPENAI_API_KEY:
     raise ValueError("❌ Укажи TELEGRAM_TOKEN и OPENAI_API_KEY в Render Environment Variables")
