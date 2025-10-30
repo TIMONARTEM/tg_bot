@@ -57,13 +57,16 @@ async def chatgpt_handler(message: Message):
 
 # --- Асинхронный запуск бота ---
 async def start_bot():
+    print("✅ Бот запущен и ждёт сообщений...")
     await dp.start_polling(bot)
 
-# --- Flask в отдельном потоке, чтобы Render не падал ---
+# --- Flask в отдельном потоке ---
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
+# --- Точка входа ---
 if __name__ == "__main__":
-    Thread(target=run_flask).start()
-    async
+    flask_thread = Thread(target=run_flask)
+    flask_thread.start()
+    asyncio.get_event_loop().run_until_complete(start_bot())
